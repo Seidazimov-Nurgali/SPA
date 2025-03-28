@@ -1,0 +1,1 @@
+Blade content {{ $comment->text }}
