@@ -1,5 +1,6 @@
 <script setup>
-import {reactive} from 'vue'
+import {reactive, onMounted} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
 import {useAuthStore} from "@/store/AuthStore.js"
 import TextInput from "@/components/TextInput.vue";
 import InputLabel from "@/components/InputLabel.vue";
@@ -7,6 +8,8 @@ import SuccessButton from "@/components/SuccessButton.vue";
 import InputError from "@/components/InputError.vue";
 import Loader from "@/components/Loader.vue";
 
+const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 const form = reactive({
@@ -16,14 +19,28 @@ const form = reactive({
   password_confirmation: ''
 })
 
+const handleRegister = async () => {
+  await authStore.register(form)
+  
+  // Handle redirect after successful registration
+  if (authStore.getAuth) {
+    const redirect = route.query.redirect || '/dashboard'
+    router.push(redirect)
+  }
+}
+
+onMounted(() => {
+  // Clear any previous errors
+  authStore.clearErrors()
+})
 </script>
 <template>
   <div class="flex items-center justify-center h-screen">
     <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
       <h2 class="text-2xl font-bold text-center mb-6">Register</h2>
-      <!-- Login Form -->
-      <form @submit.prevent="authStore.register(form)">
-        <!-- Email Input -->
+      <!-- Register Form -->
+      <form @submit.prevent="handleRegister">
+        <!-- Name Input -->
         <div class="mb-4">
           <InputLabel for="name" value="Name"/>
 
@@ -42,6 +59,7 @@ const form = reactive({
           </template>
         </div>
 
+        <!-- Email Input -->
         <div class="mb-4">
           <InputLabel for="email" value="Email"/>
 
@@ -77,6 +95,7 @@ const form = reactive({
           </template>
         </div>
 
+        <!-- Confirm Password Input -->
         <div class="mb-6">
           <InputLabel
               for="password_confirmation"
@@ -97,6 +116,7 @@ const form = reactive({
           </template>
         </div>
 
+        <!-- Register Button -->
         <div class="mb-4">
           <SuccessButton
               :class="{ 'opacity-25': authStore.processing }"
@@ -107,6 +127,7 @@ const form = reactive({
           </SuccessButton>
         </div>
 
+        <!-- Login Link -->
         <div class="text-center text-sm text-gray-600 mt-4">
           Already registered?
           <RouterLink to="/login" class="text-blue-600 hover:text-blue-700 font-medium">Login</RouterLink>

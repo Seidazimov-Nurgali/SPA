@@ -1,5 +1,6 @@
 <script setup>
-import {reactive} from 'vue'
+import {reactive, onMounted} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
 import {useAuthStore} from "@/store/AuthStore.js"
 import TextInput from "@/components/TextInput.vue";
 import InputLabel from "@/components/InputLabel.vue";
@@ -8,6 +9,8 @@ import InputError from "@/components/InputError.vue"
 import Checkbox from "@/components/Checkbox.vue";
 import Loader from "@/components/Loader.vue";
 
+const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 const form = reactive({
@@ -15,13 +18,28 @@ const form = reactive({
   password: '',
   remember: false
 })
+
+const handleLogin = async () => {
+  await authStore.login(form)
+  
+  // Handle redirect after successful login
+  if (authStore.getAuth) {
+    const redirect = route.query.redirect || '/dashboard'
+    router.push(redirect)
+  }
+}
+
+onMounted(() => {
+  // Clear any previous errors
+  authStore.clearErrors()
+})
 </script>
 <template>
   <div class="flex items-center justify-center h-screen">
     <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
       <h2 class="text-2xl font-bold text-center mb-6">Login to Your Account</h2>
       <!-- Login Form -->
-      <form @submit.prevent="authStore.login(form)">
+      <form @submit.prevent="handleLogin">
         <!-- Email Input -->
         <div class="mb-4">
           <InputLabel for="email" value="Email"/>

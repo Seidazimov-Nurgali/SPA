@@ -37,7 +37,15 @@ const router = createRouter({
     {
       path: '/forgot-password',
       name: 'forgot-password',
-      component: () => import('../views/Auth/Register.vue'),
+      component: () => import('../views/Auth/ForgotPassword.vue'),
+      meta: {
+        forGuests: true
+      }
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('../views/Auth/ResetPassword.vue'),
       meta: {
         forGuests: true
       }
@@ -95,12 +103,25 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
-  if (to.matched.some((record) => record.meta.forLogged) && !authStore.getAuth)
-    next({name: 'login'})
-  else if (to.matched.some((record) => record.meta.forGuests) && authStore.getAuth)
-    next({name: 'dashboard'})
-  else next()
+  
+  // Wait for auth initialization if not done yet
+  if (!authStore.getIsInitialized) {
+    await authStore.attempt()
+  }
+  
+  // Handle protected routes
+  if (to.matched.some((record) => record.meta.forLogged) && !authStore.getAuth) {
+    next({ name: 'login', query: { redirect: to.fullPath } })
+  }
+  // Handle guest-only routes
+  else if (to.matched.some((record) => record.meta.forGuests) && authStore.getAuth) {
+    next({ name: 'dashboard' })
+  }
+  else {
+    next()
+  }
 })
+
 export default router

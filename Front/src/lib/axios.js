@@ -6,7 +6,7 @@ import {useToast} from "vue-toast-notification";
 const axiosInstance = axios.create({
     withCredentials: true,
     withXSRFToken: true,
-    baseURL: 'http://localhost:8000'
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000'
 })
 
 axiosInstance.interceptors.response.use(
@@ -17,27 +17,55 @@ axiosInstance.interceptors.response.use(
         const authStore = useAuthStore()
         const $toast = useToast();
 
-        switch (error.response.status) {
+        // Don't show toast for auth errors that are already handled
+        const isAuthRoute = router.currentRoute.value.meta?.forGuests
+
+        switch (error.response?.status) {
             case 401:
-                authStore.cleanState()
-                $toast.error('Unauthorized')
-                router.push('/login')
+                if (!isAuthRoute) {
+                    authStore.cleanState()
+                    $toast.error('Session expired. Please login again.')
+                    router.push('/login')
+                }
+                break
+            case 403:
+                $toast.error('Access denied. You don\'t have permission to perform this action.')
                 break
             case 404:
-                $toast.error('Page not found')
-                router.push('/404')
+                if (!isAuthRoute) {
+                    $toast.error('Page not found')
+                    router.push('/404')
+                }
                 break
             case 419:
-                authStore.cleanState()
-                $toast.error('Unauthorized')
-                router.push('/login')
+                if (!isAuthRoute) {
+                    authStore.cleanState()
+                    $toast.error('Session expired. Please login again.')
+                    router.push('/login')
+                }
+                break
+            case 422:
+                // Validation errors are handled in components
+                break
+            case 429:
+                $toast.error('Too many requests. Please try again later.')
                 break
             case 500:
-                $toast.error('Server Error')
-                router.push('/500')
+                if (!isAuthRoute) {
+                    $toast.error('Server Error')
+                    router.push('/500')
+                }
+                break
+            default:
+                if (error.response?.status >= 500) {
+                    $toast.error('Server error. Please try again later.')
+                } else if (!error.response) {
+                    $toast.error('Network error. Please check your connection.')
+                }
                 break
         }
         return Promise.reject(error)
     }
 )
+
 export default axiosInstance
